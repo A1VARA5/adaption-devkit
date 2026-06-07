@@ -3,6 +3,7 @@
 A community, unofficial, open source toolkit for starting fast with Adaption's
 Adaptive Data and AutoScientist.
 
+[![CI](https://github.com/A1VARA5/adaption-devkit/actions/workflows/ci.yml/badge.svg)](https://github.com/A1VARA5/adaption-devkit/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Status: community](https://img.shields.io/badge/status-community-success.svg)](#what-this-is)
@@ -61,6 +62,7 @@ and skip the small mistakes that cost real time and credits the first time aroun
 - `adaption-kit doctor` - check your setup in one shot: Python, the SDK, your env vars, the host.
 - `adaption-kit lint` - preflight linter for your dataset, run it before you pay.
 - `adaption-kit suggest` - look at your file and recommend the column mapping to use.
+- `adaption-kit convert` - convert between CSV, JSONL, and Parquet.
 - `adaption-kit estimate` - quote credits and time before a run.
 - `adaption-kit run` - estimate first wrapper around an adaptation run.
 - `adaption-kit publish` - publish helper for the 501 endpoint.
@@ -119,11 +121,14 @@ right. Fix the warnings, then move on to `estimate` and `run`.
 
 | Path | What is in it |
 |------|----------------|
-| `adaption_kit/` | the Python package and the `adaption-kit` CLI (`doctor`, `lint`, `suggest`, `estimate`, `run`, `publish`, `card`, `cover`) |
+| `adaption_kit/` | the Python package and the `adaption-kit` CLI (`doctor`, `lint`, `suggest`, `convert`, `estimate`, `run`, `publish`, `card`, `cover`) |
 | `guides/` | `quickstart`, `gotchas`, `column-mapping`, `recipes-and-controls`, `release-checklist` |
 | `cookbook/` | runnable notebooks that walk the full lifecycle |
 | `templates/` | dataset schemas, dataset and model cards, a cover, and Kaggle metadata |
 | `graphics/` | the diagrams embedded below, as Mermaid in Markdown |
+| `tests/` | the pytest suite, run with `pytest` |
+| `examples/` | full walkthroughs you can copy and paste, marketing and question and answer |
+| `MAINTENANCE.md` | what is verified versus correct by construction, and how current it is |
 | `LICENSE` | Apache-2.0 |
 | `CONTRIBUTING.md` | how to contribute and the quality bar |
 | `CODE_OF_CONDUCT.md` | Contributor Covenant v2.1 |

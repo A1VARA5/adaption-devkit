@@ -7,7 +7,10 @@ the kind you usually only learn by hitting them once.
 > **adaption-devkit** is a community, unofficial toolkit (Apache-2.0) by Aivaras
 > Navardauskas (MANIFESTA), GitHub `A1VARA5`. Not affiliated with or endorsed by
 > Adaption Labs. Behavior described here was observed in practice and may change;
-> always re-verify against your account before a final run.
+> always reverify against your account before a final run.
+
+Last checked: June 2026. If a fix here no longer matches what you see, please open
+an issue so it can be corrected.
 
 ## 1. Rows vanish: deduplication collapse
 
@@ -187,3 +190,71 @@ recipe_specification={"recipes": {"reasoning_traces": True, "deduplication": Tru
 
 Brand controls are `blueprint`, `length`, `safety_categories`, and
 `hallucination_mitigation`. See [recipes-and-controls.md](recipes-and-controls.md).
+
+## 11. You changed five things and cannot tell what moved the score
+
+**Symptom.** You enabled `reasoning_traces`, added a `length` control, rewrote half
+your prompts, swapped the column mapping, and bumped `max_rows`, all in one run.
+`improvement_percent` moved, but you have no idea which change did it, so your next
+run is a guess.
+
+**Cause.** More than one lever changed between two runs. With several variables in
+play at once, the result is unattributable. You cannot keep the part that helped or
+drop the part that hurt because you do not know which part is which.
+
+**Fix.** Change one lever at a time. Pick a baseline config, run a small pilot, read
+the number, then change exactly one thing and pilot again. Keep the change only if
+the number went up. It feels slower but it is faster, because every run teaches you
+something instead of leaving you to guess. This also protects your credits: you stop
+paying for runs whose result you cannot interpret.
+
+## 12. doctor or run reports 503 on the documented host
+
+**Symptom.** `adaption-kit doctor` or a run says the host is unreachable or returns
+503, even though your key is valid and your network is fine.
+
+**Cause.** The documented default host is not always the host your account talks to.
+One can return 503 while the other answers normally. See entry 8 above for the same
+root cause from the SDK side; this entry is the same trap seen through the CLI.
+
+**Fix.** Set `ADAPTION_BASE_URL` in your environment before you run `doctor` so the
+CLI checks the host that actually answers:
+
+```bash
+export ADAPTION_BASE_URL="https://api.prod.adaptionlabs.ai"
+adaption-kit doctor
+```
+
+If `doctor` is green on `https://api.prod.adaptionlabs.ai` but red on the documented
+default, that is the bug, not your setup. Keep the working host in the environment so
+every command picks it up.
+
+## 13. Your local CSV and JSONL disagree on row count after an edit
+
+**Symptom.** You keep a CSV and a JSONL of the same dataset side by side, edit one,
+and a later run or lint processes a different number of rows than you expected
+because the two files drifted apart.
+
+**Cause.** Two copies of the same data in two formats fall out of sync the moment you
+edit one and forget the other. Nothing forces them to match.
+
+**Fix.** Treat one file as the source of truth and regenerate the other from it,
+rather than hand editing both. Run `adaption-kit lint` on whichever file you are
+about to upload, not on the stale copy. The linter reports the row count and the
+columns it sees, so a quick lint on each file makes drift obvious before you pay for
+a run on the wrong one.
+
+## 14. Empty or whitespace only completions silently weaken a run
+
+**Symptom.** The run succeeds and processes your rows, but the quality gain is
+smaller than the same dataset earned before, and you cannot see why in the data.
+
+**Cause.** A handful of rows have an empty `completion`, or a completion that is only
+quotes, whitespace, or a stray delimiter left over from a spreadsheet export. They
+pass as rows but carry no usable answer, so they dilute the signal the platform
+learns from.
+
+**Fix.** Lint before every run. `adaption-kit lint data.csv` flags empty anchors and
+whitespace only completions so you can drop or fix them first. Completion only data
+lives and dies on the quality of each answer, so a few blank ones cost more than
+their share.

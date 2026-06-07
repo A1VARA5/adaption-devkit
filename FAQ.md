@@ -89,6 +89,68 @@ Only the SDK backed commands, `estimate` and `run`, need the optional `adaption`
 SDK (`pip install -e ".[sdk]"`). If an extra is missing, the matching command
 tells you what to add.
 
+## My run says succeeded but improvement_percent is empty. Did it fail?
+
+No, it most likely did not fail. Evaluation runs as a separate job from the
+adaptation run, on its own schedule. The run can report `succeeded` while the
+evaluation is still pending or running, so `improvement_percent` is empty for a
+while after the run itself is done.
+
+Poll the evaluation separately rather than reading it off the run status. Call
+`get_evaluation` until it reaches a terminal state, then read the number:
+
+```python
+import time
+ev = client.datasets.get_evaluation(dataset_id)
+while ev.status in ("pending", "running"):
+    time.sleep(5)
+    ev = client.datasets.get_evaluation(dataset_id)
+print(ev.quality.improvement_percent)
+```
+
+If it stays empty long after the evaluation reaches a terminal state, that is worth
+an issue. An empty number right after a succeeded run is normal.
+
+## My Kaggle dataset is uploaded but nobody can see it. Why?
+
+Kaggle creates datasets as private by default. The upload worked; the dataset is
+just not visible to anyone but you yet. Reviewers and teammates will get a not found
+or no access until you change that.
+
+Flip it to public in the Kaggle dataset settings after upload. Then open the public
+URL in a logged out browser, or an incognito window, to confirm a stranger can
+actually reach it. For the hackathon a private dataset does not count as released, so
+verify the public toggle before you call the release done.
+
+## My CSV shows strange characters at the very start. What are they?
+
+That is almost certainly a byte order mark, a BOM. The file was saved as UTF-8 with
+a BOM, often by Excel or a Windows editor, and the BOM bytes get stuck to the front
+of your first header or first cell. You may see it printed as `ï»¿`, or it shows up
+as the first column name failing to match your mapping even though it looks right.
+
+Read the file with `utf-8-sig`, which strips the BOM on input, and write plain
+`utf-8` with no BOM on output:
+
+```python
+with open("in.csv", encoding="utf-8-sig", newline="") as f:
+    rows = list(csv.DictReader(f))
+```
+
+`adaption-kit lint` warns when it detects a BOM so you can resave before uploading.
+
+## I changed several things and the score moved, but I cannot tell why. What now?
+
+You changed more than one lever between two runs, so the result is unattributable.
+When a recipe, a brand control, the column mapping, and the row count all change at
+once, you cannot say which one earned the gain or caused the drop, and your next move
+is a guess.
+
+Change one lever at a time. Set a baseline, pilot small, read `improvement_percent`,
+then change exactly one thing and pilot again. Keep the change only if the number
+went up. It feels slower but it is faster, because each run teaches you something
+instead of leaving you guessing, and you stop paying for runs you cannot interpret.
+
 ## Where is the official reference?
 
 The official Adaption documentation and API are the source of truth for the

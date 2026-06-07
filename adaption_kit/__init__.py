@@ -21,6 +21,7 @@ BANNER = (
 )
 
 from .preflight import LintReport, lint_dataset  # noqa: E402
+from .convert import convert_file  # noqa: E402
 from .doctor import DoctorReport, doctor  # noqa: E402
 from .suggest import SuggestResult, suggest_mapping  # noqa: E402
 from .cards import (  # noqa: E402
@@ -37,6 +38,7 @@ __all__ = [
     "BANNER",
     "LintReport",
     "lint_dataset",
+    "convert_file",
     "DoctorReport",
     "doctor",
     "SuggestResult",

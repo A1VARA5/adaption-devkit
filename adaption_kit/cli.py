@@ -1,10 +1,10 @@
 """cli.py - argparse command line for adaption-kit.
 
-Subcommands: doctor, lint, suggest, estimate, run, publish, card, cover.
+Subcommands: doctor, lint, suggest, convert, estimate, run, publish, card, cover.
 
 The SDK-backed subcommands (estimate, run) import run.py lazily so that doctor,
-lint, suggest, card, and cover work even when the optional ``adaption`` SDK is
-not installed.
+lint, suggest, convert, card, and cover work even when the optional ``adaption``
+SDK is not installed.
 """
 
 from __future__ import annotations
@@ -64,6 +64,28 @@ def _cmd_lint(args: argparse.Namespace) -> int:
     )
     print(report.summary())
     return 1 if report.status == FAIL else 0
+
+
+def _cmd_convert(args: argparse.Namespace) -> int:
+    from .convert import (
+        OptionalDependencyMissing,
+        UnsupportedFormat,
+        convert_file,
+    )
+
+    try:
+        count = convert_file(args.input, args.output)
+    except FileNotFoundError as exc:
+        print("error: " + str(exc), file=sys.stderr)
+        return 2
+    except UnsupportedFormat as exc:
+        print("error: " + str(exc), file=sys.stderr)
+        return 2
+    except OptionalDependencyMissing as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print("converted " + str(count) + " row(s) -> " + args.output)
+    return 0
 
 
 def _cmd_estimate(args: argparse.Namespace) -> int:
@@ -297,6 +319,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_lint.add_argument("--completion", help="completion column (anchor)")
     p_lint.add_argument("--context", help="comma-separated context column(s)")
     p_lint.set_defaults(func=_cmd_lint)
+
+    # convert
+    p_conv = sub.add_parser(
+        "convert",
+        help="convert a dataset between .csv, .jsonl, and .parquet (BOM-safe)",
+    )
+    p_conv.add_argument("input", help="input file (.csv, .jsonl, or .parquet)")
+    p_conv.add_argument("output", help="output file (.csv, .jsonl, or .parquet)")
+    p_conv.set_defaults(func=_cmd_convert)
 
     # estimate
     p_est = sub.add_parser("estimate", help="quote credits/time, no run started")

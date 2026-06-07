@@ -1,0 +1,42 @@
+# Ruff configuration for adaption-kit.
+# Lenient by design: this is a beginner friendly toolkit, so we keep the
+# linter helpful without being noisy.
+
+line-length = 100
+target-version = "py310"
+
+exclude = [
+    ".git",
+    ".github",
+    ".ruff_cache",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "__pycache__",
+    "*.egg-info",
+]
+
+[lint]
+# A small, sensible default set: pyflakes (F), pycodestyle errors (E) and
+# warnings (W), and a few obvious bug catchers (B).
+select = ["E", "F", "W", "B"]
+
+# A short ignore list for rules that are noisy or that clash with the
+# line-length and formatter choices above.
+ignore = [
+    "E501",  # line too long, handled by the formatter
+    "E731",  # allow assigning a lambda to a variable
+    "B008",  # allow function calls in argument defaults
+]
+
+# Notebooks legitimately import partway through a cell, so relax that one rule
+# for them while keeping it enforced in the package code.
+[lint.per-file-ignores]
+"*.ipynb" = ["E402"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

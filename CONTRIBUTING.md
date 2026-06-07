@@ -86,3 +86,49 @@ template asks what problem you want solved. Both are welcome.
 
 This project follows the [Contributor Covenant v2.1](./CODE_OF_CONDUCT.md). By
 taking part you agree to uphold it.
+
+## Development
+
+This section covers the tooling for working on the code itself: how to set up a
+development environment, run the tests, and run the linter and formatter.
+
+Install the package in editable mode along with the test tools. If a `dev`
+extra is not defined, the command falls back to a plain editable install plus
+the tools we need:
+
+```bash
+pip install -e ".[dev]" || pip install -e .
+pip install pytest ruff
+```
+
+If you have `make`, the same setup is one target:
+
+```bash
+make install
+```
+
+Run the test suite with pytest:
+
+```bash
+pytest
+# or
+make test
+```
+
+Run the linter and the formatter with ruff. The configuration lives in
+`ruff.toml` (line length 100, target Python 3.10):
+
+```bash
+ruff check .     # lint, or: make lint
+ruff format .    # auto format, or: make format
+```
+
+The `all` target runs the linter and then the tests in one go:
+
+```bash
+make all
+```
+
+CI runs the same checks on every push and pull request to `main`, across Python
+3.10, 3.11, and 3.12. See `.github/workflows/ci.yml`. Please run `ruff check .`
+and `pytest` locally before opening a pull request so the build stays green.

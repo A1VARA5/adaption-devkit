@@ -12,7 +12,6 @@ corrupt the first header or key.
 from __future__ import annotations
 
 import csv
-import io
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -23,6 +22,20 @@ PASS = "PASS"
 WARN = "WARN"
 FAIL = "FAIL"
 _RANK = {PASS: 0, WARN: 1, FAIL: 2}
+
+# Completions longer than this many characters are flagged. Most adaptation
+# targets sit well under this; very long answers usually mean a whole document
+# leaked into one cell and will dominate or get truncated downstream.
+LONG_COMPLETION_CHARS = 8000
+
+# Fraction of identical normalized anchors at or above which we treat the anchor
+# as "almost entirely identical" and fail (it will fully collapse under dedup).
+NEAR_CONSTANT_THRESHOLD = 0.98
+
+# Characters that signal a decoding problem: the classic mojibake marker, the
+# Unicode replacement char, and raw C0 control bytes other than tab/newline.
+_REPLACEMENT_CHAR = "�"
+_MOJIBAKE_MARKERS = ("Ã©", "Ã¨", "Â ", "â")
 
 
 @dataclass
@@ -60,6 +73,13 @@ class LintReport:
     duplicate_rows: int = 0  # rows that dedup would collapse (row_count - unique)
     field_stats: List[FieldStat] = field(default_factory=list)
     empty_cells: int = 0
+    # Extended diagnostics (additive; older callers can ignore these).
+    near_duplicate_rows: int = 0  # extra collapse once case/whitespace normalized
+    unique_anchor_values_normalized: int = 0
+    empty_anchor_cells: int = 0  # anchor cells that are empty or whitespace only
+    long_completion_rows: int = 0  # completions over the soft length ceiling
+    max_completion_chars: int = 0
+    suspicious_encoding_rows: int = 0  # rows showing mojibake or control bytes
     checks: List[Tuple[str, str]] = field(default_factory=list)
 
     # -- helpers ---------------------------------------------------------
@@ -107,6 +127,12 @@ class LintReport:
                 + str(self.duplicate_rows)
                 + " row(s)"
             )
+            if self.near_duplicate_rows:
+                lines.append(
+                    "near duplicate anchors: "
+                    + str(self.near_duplicate_rows)
+                    + " more fold after normalizing case and whitespace"
+                )
         if self.field_stats:
             lines.append("")
             lines.append("metadata fill rate:")
@@ -122,6 +148,23 @@ class LintReport:
                     + ")"
                 )
         lines.append("empty cells : " + str(self.empty_cells))
+        if self.max_completion_chars:
+            lines.append(
+                "longest completion: "
+                + str(self.max_completion_chars)
+                + " char(s)"
+                + (
+                    " (" + str(self.long_completion_rows) + " over limit)"
+                    if self.long_completion_rows
+                    else ""
+                )
+            )
+        if self.suspicious_encoding_rows:
+            lines.append(
+                "encoding flags: "
+                + str(self.suspicious_encoding_rows)
+                + " row(s) with mojibake/control bytes"
+            )
         lines.append("")
         lines.append("checks:")
         for level, msg in self.checks:
@@ -236,6 +279,28 @@ def _cell_text(value: Any) -> str:
     return str(value).strip()
 
 
+def _normalize_anchor(text: str) -> str:
+    """Collapse case and internal whitespace so near duplicate anchors that
+    differ only in casing or spacing fold together. Used to estimate the extra
+    collapse beyond exact duplicates."""
+    return " ".join(text.split()).casefold()
+
+
+def _looks_mojibake(text: str) -> bool:
+    """Heuristic for a string that was decoded with the wrong codec or carries
+    stray control bytes. Conservative: only flags obvious markers."""
+    if _REPLACEMENT_CHAR in text:
+        return True
+    for marker in _MOJIBAKE_MARKERS:
+        if marker in text:
+            return True
+    for ch in text:
+        # C0 control characters other than tab, newline, carriage return.
+        if ord(ch) < 32 and ch not in "\t\n\r":
+            return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Lint
 # ---------------------------------------------------------------------------
@@ -334,16 +399,27 @@ def lint_dataset(
     empty_anchor = report.row_count - len(non_empty_anchor)
     unique_vals = len(set(non_empty_anchor))
     report.unique_anchor_values = unique_vals
+    report.empty_anchor_cells = empty_anchor
     # Rows dedup would remove: duplicates among non-empty plus empty anchors.
     report.duplicate_rows = report.row_count - unique_vals
+
+    # Near duplicate estimate: how many more rows collapse once we normalize case
+    # and whitespace, beyond the exact-duplicate count already reported above.
+    normalized_anchor = [_normalize_anchor(v) for v in non_empty_anchor]
+    unique_norm = len(set(normalized_anchor))
+    report.unique_anchor_values_normalized = unique_norm
+    report.near_duplicate_rows = max(0, unique_vals - unique_norm)
 
     if empty_anchor:
         report.add(
             FAIL,
             str(empty_anchor)
-            + " row(s) have an empty "
+            + " row(s) have an empty or whitespace only "
             + anchor_kind
-            + " anchor. These cannot be adapted.",
+            + " anchor. These cannot be adapted. Fix: drop these rows or fill "
+            "the "
+            + anchor_kind
+            + " column before the run.",
         )
 
     rate = report.unique_anchor_rate
@@ -355,6 +431,36 @@ def lint_dataset(
             "keyed on the prompt) will collapse this to a single row. If the real "
             "variety lives in context columns, this is the classic templated prompt "
             "trap - move variety into the prompt or use a completion anchor.",
+        )
+    elif unique_norm <= 1 and report.row_count > 1:
+        # Distinct raw values but they fold to one after case/whitespace
+        # normalization. Dedup keys on the raw prompt, but this is still a sign
+        # the variety is cosmetic and the run will barely learn anything.
+        report.add(
+            FAIL,
+            "anchor values differ only by case or whitespace; after normalizing "
+            "they collapse to a single distinct "
+            + anchor_kind
+            + ". Fix: introduce real semantic variety, not just formatting.",
+        )
+    elif (
+        report.row_count >= 10
+        and (unique_norm / report.row_count) <= (1.0 - NEAR_CONSTANT_THRESHOLD)
+    ):
+        # Not literally constant, but almost: a handful of distinct anchors
+        # repeated across the whole file. This collapses to those few rows under
+        # dedup, so a full run buys almost nothing.
+        report.add(
+            FAIL,
+            "anchor is almost entirely identical: only "
+            + str(unique_norm)
+            + " distinct value(s) (normalized) across "
+            + str(report.row_count)
+            + " rows. Dedup will collapse this to roughly "
+            + str(unique_norm)
+            + " row(s). Fix: add real variety to the "
+            + anchor_kind
+            + " column, or use a completion anchor if the answers differ.",
         )
     elif rate < 0.5:
         report.add(
@@ -382,6 +488,23 @@ def lint_dataset(
         report.add(
             PASS,
             _pct(rate) + " of anchors are unique; dedup impact is minimal",
+        )
+
+    # --- near duplicate anchors (case/whitespace) --------------------------
+    # Beyond exact duplicates: anchors that are the same once you fold case and
+    # collapse whitespace. Dedup keys on the raw prompt so these survive, but
+    # they add little and often indicate sloppy templating.
+    if report.near_duplicate_rows > 0 and unique_norm > 1:
+        report.add(
+            WARN,
+            str(report.near_duplicate_rows)
+            + " additional anchor(s) are near duplicates (identical after "
+            "normalizing case and whitespace): "
+            + str(unique_vals)
+            + " exact unique fold to "
+            + str(unique_norm)
+            + " normalized unique. Fix: dedupe these yourself so the run learns "
+            "from genuinely distinct examples.",
         )
 
     # --- fill rates + empties ----------------------------------------------
@@ -432,5 +555,61 @@ def lint_dataset(
                 + _pct(fs.fill_rate)
                 + " filled; empty completions will be generated by the platform",
             )
+
+    # --- very long completions ---------------------------------------------
+    # Resolve the column that holds the target text: an explicit completion
+    # column, or the anchor itself when the anchor is a completion.
+    completion_col = ""
+    if completion and completion in columns:
+        completion_col = completion
+    elif anchor_kind == "completion":
+        completion_col = anchor_col
+    if completion_col:
+        long_rows = 0
+        longest = 0
+        for r in rows:
+            length = len(_cell_text(r.get(completion_col)))
+            if length > longest:
+                longest = length
+            if length > LONG_COMPLETION_CHARS:
+                long_rows += 1
+        report.long_completion_rows = long_rows
+        report.max_completion_chars = longest
+        if long_rows:
+            report.add(
+                WARN,
+                str(long_rows)
+                + " completion(s) exceed "
+                + str(LONG_COMPLETION_CHARS)
+                + " characters (longest "
+                + str(longest)
+                + "). Very long answers can dominate training or be truncated. "
+                "Fix: split or summarize them so each target is a focused answer.",
+            )
+
+    # --- mixed or suspicious encodings -------------------------------------
+    # We read every file utf-8-sig, so a BOM is handled. This catches content
+    # that was decoded with the wrong codec upstream (mojibake) or carries raw
+    # control bytes - both survive a clean utf-8 read and poison the corpus.
+    suspicious = 0
+    for r in rows:
+        flagged = False
+        for value in r.values():
+            text = _cell_text(value)
+            if text and _looks_mojibake(text):
+                flagged = True
+                break
+        if flagged:
+            suspicious += 1
+    report.suspicious_encoding_rows = suspicious
+    if suspicious:
+        report.add(
+            WARN,
+            str(suspicious)
+            + " row(s) contain replacement chars, mojibake (e.g. 'Ã©' for 'e' "
+            "with accent), or control bytes. This usually means the source was "
+            "decoded with the wrong codec before it reached this file. Fix: "
+            "export the source again as clean UTF-8 and lint it again.",
+        )
 
     return report

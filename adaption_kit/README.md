@@ -20,6 +20,7 @@ pip install adaption-kit[sdk]       # adds the adaption SDK for estimate/run
 pip install adaption-kit[hf]        # adds Hugging Face publishing
 pip install adaption-kit[kaggle]    # adds Kaggle publishing
 pip install adaption-kit[cover]     # adds Playwright for PNG cover rendering
+pip install adaption-kit[parquet]   # adds pyarrow for .parquet convert
 pip install adaption-kit[all]       # everything
 ```
 
@@ -46,8 +47,12 @@ adaption-kit doctor
 # Suggest a column mapping for a CSV or JSONL (ready to paste JSON)
 adaption-kit suggest data.csv
 
-# Preflight a dataset (anchor uniqueness, fill rates, encoding, empties)
+# Preflight a dataset (anchor uniqueness, near duplicates, long completions,
+# empty anchors, fill rates, suspicious encodings)
 adaption-kit lint data.csv --prompt instruction --completion response --context source,reference
+
+# Convert between formats, BOM-safe in, plain utf-8 out (.parquet needs pyarrow)
+adaption-kit convert data.csv data.jsonl
 
 # Quote credits and time, no run started
 adaption-kit estimate DATASET_ID --prompt instruction --completion response --deduplication
@@ -89,6 +94,11 @@ from adaption_kit import lint_dataset
 report = lint_dataset("data.csv", prompt="instruction", completion="response")
 print(report.summary())
 print(report.status, report.duplicate_rows, report.unique_anchor_rate)
+print(report.near_duplicate_rows, report.long_completion_rows,
+      report.suspicious_encoding_rows)
+
+from adaption_kit import convert_file
+rows = convert_file("data.csv", "data.jsonl")   # returns the row count
 
 from adaption_kit.run import estimate, pilot, run_full, wait_for_result
 est = estimate("DATASET_ID", prompt="instruction", completion="response", deduplication=True)
@@ -112,3 +122,4 @@ from adaption_kit.cover import generate_cover
   Kaggle manually instead.
 - Kaggle accepts taxonomy tags only; `generate_kaggle_metadata` validates them.
 - CSV and JSON are read BOM-safe (utf-8-sig) and written as plain utf-8.
+- The package ships a `py.typed` marker, so type checkers read its annotations.
