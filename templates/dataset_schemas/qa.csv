@@ -1,0 +1,6 @@
+prompt,completion,context
+"What is the boiling point of water at sea level in Celsius and Fahrenheit?","At sea level, water boils at 100 degrees Celsius, which is 212 degrees Fahrenheit. The boiling point drops at higher altitudes because air pressure is lower.","passage: Standard atmospheric pressure is 101.325 kPa at sea level."
+"Who wrote the novel Pride and Prejudice and in what year was it first published?","Pride and Prejudice was written by Jane Austen and first published in 1813.","passage: Jane Austen (1775-1817) published Pride and Prejudice anonymously in January 1813."
+"How many continents are there, and can you name them?","There are seven continents: Africa, Antarctica, Asia, Australia, Europe, North America, and South America.","passage: The seven-continent model is the most common in English-speaking countries."
+"What does the term photosynthesis refer to?","Photosynthesis is the process by which green plants, algae, and some bacteria convert light energy, water, and carbon dioxide into glucose and oxygen.","passage: Photosynthesis occurs mainly in the chloroplasts of plant cells."
+"What is the capital city of Australia?","The capital of Australia is Canberra, not Sydney or Melbourne as is often assumed.","passage: Canberra was selected as the capital in 1908 as a compromise between Sydney and Melbourne."

@@ -1,0 +1,40 @@
+{
+  "title": "PLACEHOLDER Dataset Title",
+  "id": "PLACEHOLDER-kaggle-username/PLACEHOLDER-dataset-slug",
+  "licenses": [
+    {
+      "name": "Apache 2.0"
+    }
+  ],
+  "keywords": [
+    "marketing",
+    "nlp",
+    "text generation",
+    "business"
+  ],
+  "resources": [
+    {
+      "path": "PLACEHOLDER.csv",
+      "description": "PLACEHOLDER what this file contains",
+      "schema": {
+        "fields": [
+          {
+            "name": "prompt",
+            "type": "string",
+            "description": "Instruction or question. Anchor column."
+          },
+          {
+            "name": "completion",
+            "type": "string",
+            "description": "Target answer. Anchor column."
+          },
+          {
+            "name": "context",
+            "type": "string",
+            "description": "Optional grounding note or passage."
+          }
+        ]
+      }
+    }
+  ]
+}

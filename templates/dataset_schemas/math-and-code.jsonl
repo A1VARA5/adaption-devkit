@@ -1,0 +1,5 @@
+{"prompt": "A train travels 240 km in 3 hours, then 180 km in 2 hours. What is its average speed for the whole trip?", "completion": "Total distance is 240 + 180 = 420 km. Total time is 3 + 2 = 5 hours. Average speed is 420 / 5 = 84 km/h."}
+{"prompt": "Write a Python function that returns the nth Fibonacci number using iteration.", "completion": "def fib(n):\n    if n < 2:\n        return n\n    a, b = 0, 1\n    for _ in range(n - 1):\n        a, b = b, a + b\n    return b"}
+{"prompt": "Solve for x: 3x + 7 = 2x + 15.", "completion": "Subtract 2x from both sides to get x + 7 = 15. Subtract 7 from both sides to get x = 8."}
+{"prompt": "Write a SQL query that returns the top 3 customers by total order value from an orders table with columns customer_id and amount.", "completion": "SELECT customer_id, SUM(amount) AS total\nFROM orders\nGROUP BY customer_id\nORDER BY total DESC\nLIMIT 3;"}
+{"prompt": "What is the time complexity of binary search on a sorted array of n elements, and why?", "completion": "Binary search runs in O(log n) time. Each comparison halves the remaining search space, so the number of steps grows logarithmically with n."}

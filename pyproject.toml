@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adaption-kit"
+version = "0.1.0"
+description = "Community, unofficial open-source toolkit for starting fast with Adaption Adaptive Data and AutoScientist."
+readme = "adaption_kit/README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Aivaras Navardauskas (MANIFESTA)" }]
+keywords = ["adaption", "adaptive-data", "autoscientist", "datasets", "llm", "fine-tuning"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+# Core has no required third-party deps: lint, card, and cover-fallback run on
+# the standard library alone. Heavy/optional pieces live in extras below.
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/A1VARA5/adaption-devkit"
+Repository = "https://github.com/A1VARA5/adaption-devkit"
+Issues = "https://github.com/A1VARA5/adaption-devkit/issues"
+
+[project.optional-dependencies]
+sdk = ["adaption>=0.3.1"]
+hf = ["huggingface_hub>=0.20"]
+kaggle = ["kaggle>=1.6"]
+cover = ["playwright>=1.40"]
+all = [
+    "adaption>=0.3.1",
+    "huggingface_hub>=0.20",
+    "kaggle>=1.6",
+    "playwright>=1.40",
+]
+
+[project.scripts]
+adaption-kit = "adaption_kit.cli:main"
+
+[tool.setuptools]
+packages = ["adaption_kit"]
+
+[tool.setuptools.package-data]
+adaption_kit = ["README.md"]
