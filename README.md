@@ -174,6 +174,40 @@ flowchart TD
 
 See [`graphics/recipe-matrix.md`](./graphics/recipe-matrix.md) for the full table.
 
+### Credit safe run loop
+
+See [`graphics/credit-safe-run.md`](./graphics/credit-safe-run.md). Estimate, pilot small, read the number, change one lever, then scale.
+
+```mermaid
+flowchart TD
+    A([lint your dataset]) --> B[estimate the run]
+    B --> C[pilot on a small max_rows slice]
+    C --> D{improvement_percent}
+    D -- low --> E[change one lever<br/>a recipe or a brand control]
+    E --> B
+    D -- good --> F[run the full corpus]
+    F --> G([publish to Hugging Face and Kaggle])
+    classDef step fill:#0b7285,stroke:#08505c,color:#ffffff;
+    classDef gate fill:#e7f5ff,stroke:#1c7ed6,color:#0b4884;
+    class A,B,C,E,F,G step;
+    class D gate;
+```
+
+### Publish flow
+
+See [`graphics/publish-flow.md`](./graphics/publish-flow.md). The publish endpoint returns 501, so you release by hand.
+
+```mermaid
+flowchart LR
+    A[run done] --> B[download the adapted dataset]
+    B --> C[write a dataset card]
+    C --> D[render a cover image]
+    D --> E[push to Hugging Face]
+    D --> F[push to Kaggle]
+    classDef step fill:#0b7285,stroke:#08505c,color:#ffffff;
+    class A,B,C,D,E,F step;
+```
+
 ## Contributing
 
 Contributions are welcome and the quality bar is simple: only verified, correct
