@@ -1,6 +1,7 @@
 """cli.py - argparse command line for adaption-kit.
 
-Subcommands: doctor, lint, suggest, convert, estimate, run, publish, card, cover.
+Subcommands: doctor, lint, suggest, verify, decontaminate, convert, estimate, run,
+publish, card, cover.
 
 The SDK-backed subcommands (estimate, run) import run.py lazily so that doctor,
 lint, suggest, convert, card, and cover work even when the optional ``adaption``
@@ -61,6 +62,36 @@ def _cmd_lint(args: argparse.Namespace) -> int:
         prompt=args.prompt,
         completion=args.completion,
         context=_split_csv(args.context),
+    )
+    print(report.summary())
+    return 1 if report.status == FAIL else 0
+
+
+def _cmd_verify(args: argparse.Namespace) -> int:
+    from .verify import FAIL, verify_dataset
+
+    report = verify_dataset(
+        args.path,
+        kind=args.kind,
+        completion=args.completion,
+        gold=args.gold,
+        tests=args.tests,
+        out=args.out,
+    )
+    print(report.summary())
+    return 1 if report.status == FAIL else 0
+
+
+def _cmd_decontaminate(args: argparse.Namespace) -> int:
+    from .decontaminate import FAIL, decontaminate
+
+    report = decontaminate(
+        args.path,
+        benchmarks=args.against,
+        column=args.column,
+        benchmark_column=args.benchmark_column,
+        n=args.n,
+        out=args.out,
     )
     print(report.summary())
     return 1 if report.status == FAIL else 0
@@ -319,6 +350,39 @@ def build_parser() -> argparse.ArgumentParser:
     p_lint.add_argument("--completion", help="completion column (anchor)")
     p_lint.add_argument("--context", help="comma-separated context column(s)")
     p_lint.set_defaults(func=_cmd_lint)
+
+    # verify
+    p_ver = sub.add_parser(
+        "verify",
+        help="prove rows are correct (math answers / code tests) before you spend",
+    )
+    p_ver.add_argument("path", help="CSV, JSONL, or JSON file")
+    p_ver.add_argument(
+        "--kind", choices=["math", "code"], required=True, help="domain to verify"
+    )
+    p_ver.add_argument("--completion", help="worked-solution / code column")
+    p_ver.add_argument("--gold", help="(math) gold-answer column")
+    p_ver.add_argument("--tests", help="(code) unit-tests column")
+    p_ver.add_argument("--out", help="write only verified rows here (.csv/.jsonl)")
+    p_ver.set_defaults(func=_cmd_verify)
+
+    # decontaminate
+    p_dec = sub.add_parser(
+        "decontaminate",
+        help="drop training rows that overlap a benchmark test set (n-gram)",
+    )
+    p_dec.add_argument("path", help="training CSV, JSONL, or JSON file")
+    p_dec.add_argument(
+        "--against", nargs="+", required=True, help="benchmark file(s) to check against"
+    )
+    p_dec.add_argument("--column", help="anchor column in the training data")
+    p_dec.add_argument(
+        "--benchmark-column", dest="benchmark_column",
+        help="anchor column in the benchmark files",
+    )
+    p_dec.add_argument("--n", type=int, default=13, help="n-gram size (default 13)")
+    p_dec.add_argument("--out", help="write cleaned rows here (.csv/.jsonl)")
+    p_dec.set_defaults(func=_cmd_decontaminate)
 
     # convert
     p_conv = sub.add_parser(
