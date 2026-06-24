@@ -10,7 +10,9 @@ flowchart TD
     Q1 -- no --> Sug[adaption-kit suggest]
     Q1 -- yes --> Lint[adaption-kit lint]
     Sug --> Lint
-    Lint --> Est[adaption-kit estimate]
+    Lint --> Ver[adaption-kit verify<br/>math or code]
+    Ver --> Dec[adaption-kit decontaminate<br/>against benchmarks]
+    Dec --> Est[adaption-kit estimate]
     Est --> Run[adaption-kit run<br/>pilot first]
     Run --> Q2{number look good?}
     Q2 -- no --> Tune[change one lever]
@@ -19,7 +21,7 @@ flowchart TD
     Full --> Pub[adaption-kit publish]
     classDef cmd fill:#0b7285,stroke:#08505c,color:#ffffff;
     classDef gate fill:#e7f5ff,stroke:#1c7ed6,color:#0b4884;
-    class Doc,Sug,Lint,Est,Run,Tune,Full,Pub cmd;
+    class Doc,Sug,Lint,Ver,Dec,Est,Run,Tune,Full,Pub cmd;
     class Q1,Q2 gate;
 ```
 

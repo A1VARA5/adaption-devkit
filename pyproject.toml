@@ -36,6 +36,7 @@ hf = ["huggingface_hub>=0.20"]
 kaggle = ["kaggle>=1.6"]
 cover = ["playwright>=1.40"]
 parquet = ["pyarrow>=14.0"]
+verify = ["sympy>=1.12"]
 dev = ["pytest>=7.0", "ruff>=0.4"]
 all = [
     "adaption>=0.3.1",
@@ -43,6 +44,7 @@ all = [
     "kaggle>=1.6",
     "playwright>=1.40",
     "pyarrow>=14.0",
+    "sympy>=1.12",
 ]
 
 [project.scripts]
