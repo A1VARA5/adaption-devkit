@@ -12,6 +12,20 @@ endorsed by Adaption Labs.
 
 ### Added
 
+- `verify` command (`adaption-kit verify`) to prove rows are correct before you
+  adapt them: math answers are checked for equivalence against a gold column
+  (normalized string, then numeric, then symbolic via sympy if installed), and
+  code solutions are executed against their unit tests in a sandboxed subprocess
+  and kept only if every test passes. With `--out` it writes only the verified
+  rows. Symbolic math needs the optional `verify` extra (sympy); without it, math
+  falls back to string and numeric checks and says so. Code verification is pure
+  standard library.
+- `decontaminate` command (`adaption-kit decontaminate`) to remove any training
+  row that overlaps a benchmark test set by an n-gram (default 13), so the
+  improvement number is not inflated by benchmark overlap. With `--out` it writes
+  the cleaned rows.
+- Optional `verify` extra (`pip install -e ".[verify]"`) that adds sympy for the
+  symbolic math equivalence check.
 - `doctor` command to check your environment and configuration (in progress).
 - `suggest` command to recommend recipes and brand controls for your domain
   (in progress).

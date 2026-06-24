@@ -61,6 +61,8 @@ and skip the small mistakes that cost real time and credits the first time aroun
 
 - `adaption-kit doctor` - check your setup in one shot: Python, the SDK, your env vars, the host.
 - `adaption-kit lint` - preflight linter for your dataset, run it before you pay.
+- `adaption-kit verify` - prove math and code rows are correct before you adapt them.
+- `adaption-kit decontaminate` - remove rows that overlap a public benchmark by an n-gram.
 - `adaption-kit suggest` - look at your file and recommend the column mapping to use.
 - `adaption-kit convert` - convert between CSV, JSONL, and Parquet.
 - `adaption-kit estimate` - quote credits and time before a run.
@@ -83,6 +85,9 @@ Optional extras:
 ```bash
 # the SDK-backed run and publish helpers
 pip install -e ".[sdk]"
+
+# the symbolic math check used by 'adaption-kit verify --kind math'
+pip install -e ".[verify]"
 
 # everything for the cookbook notebooks
 pip install -e ".[notebooks]"
@@ -121,7 +126,7 @@ right. Fix the warnings, then move on to `estimate` and `run`.
 
 | Path | What is in it |
 |------|----------------|
-| `adaption_kit/` | the Python package and the `adaption-kit` CLI (`doctor`, `lint`, `suggest`, `convert`, `estimate`, `run`, `publish`, `card`, `cover`) |
+| `adaption_kit/` | the Python package and the `adaption-kit` CLI (`doctor`, `lint`, `verify`, `decontaminate`, `suggest`, `convert`, `estimate`, `run`, `publish`, `card`, `cover`) |
 | `guides/` | `quickstart`, `gotchas`, `column-mapping`, `recipes-and-controls`, `release-checklist` |
 | `cookbook/` | runnable notebooks that walk the full lifecycle |
 | `templates/` | dataset schemas, dataset and model cards, a cover, and Kaggle metadata |
@@ -167,7 +172,9 @@ flowchart TD
     Q1 -- no --> Sug[adaption-kit suggest]
     Q1 -- yes --> Lint[adaption-kit lint]
     Sug --> Lint
-    Lint --> Est[adaption-kit estimate]
+    Lint --> Ver[adaption-kit verify<br/>math or code]
+    Ver --> Dec[adaption-kit decontaminate<br/>against benchmarks]
+    Dec --> Est[adaption-kit estimate]
     Est --> Run[adaption-kit run<br/>pilot first]
     Run --> Q2{number look good?}
     Q2 -- no --> Tune[change one lever]
@@ -176,7 +183,7 @@ flowchart TD
     Full --> Pub[adaption-kit publish]
     classDef cmd fill:#0b7285,stroke:#08505c,color:#ffffff;
     classDef gate fill:#e7f5ff,stroke:#1c7ed6,color:#0b4884;
-    class Doc,Sug,Lint,Est,Run,Tune,Full,Pub cmd;
+    class Doc,Sug,Lint,Ver,Dec,Est,Run,Tune,Full,Pub cmd;
     class Q1,Q2 gate;
 ```
 
@@ -209,7 +216,9 @@ See [`graphics/credit-safe-run.md`](./graphics/credit-safe-run.md). Estimate, pi
 
 ```mermaid
 flowchart TD
-    A([lint your dataset]) --> B[estimate the run]
+    A([lint your dataset]) --> V[verify math and code rows<br/>keep only the ones that pass]
+    V --> X[decontaminate against benchmarks]
+    X --> B[estimate the run]
     B --> C[pilot on a small max_rows slice]
     C --> D{improvement_percent}
     D -- low --> E[change one lever<br/>a recipe or a brand control]
@@ -218,7 +227,7 @@ flowchart TD
     F --> G([publish to Hugging Face and Kaggle])
     classDef step fill:#0b7285,stroke:#08505c,color:#ffffff;
     classDef gate fill:#e7f5ff,stroke:#1c7ed6,color:#0b4884;
-    class A,B,C,E,F,G step;
+    class A,V,X,B,C,E,F,G step;
     class D gate;
 ```
 

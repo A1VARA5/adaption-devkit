@@ -258,3 +258,26 @@ learns from.
 whitespace only completions so you can drop or fix them first. Completion only data
 lives and dies on the quality of each answer, so a few blank ones cost more than
 their share.
+
+## 15. Adapting unverified rows wastes credits
+
+**Symptom.** You adapt a math or code dataset, the run succeeds, and
+`improvement_percent` is flat or worse than a cleaner set earned, even though the
+recipes looked right.
+
+**Cause.** Some of the rows were wrong to begin with. A math answer that does not
+match the gold value, or a code solution that fails its own tests, teaches the model
+the wrong thing, and you paid credits to do it. A second cause is benchmark overlap:
+rows that also appear in a public benchmark test set inflate the number and do not
+survive scrutiny.
+
+**Fix.** Adapting unverified rows wastes credits. For checkable domains run
+`adaption-kit verify` first and adapt only the rows that pass; run
+`adaption-kit decontaminate` against any public benchmark so the number is
+defensible.
+
+```bash
+adaption-kit verify rows.jsonl --kind math --completion answer --gold gold --out verified.jsonl
+adaption-kit verify rows.jsonl --kind code --completion solution --tests tests --out verified.jsonl
+adaption-kit decontaminate verified.jsonl --against bench.jsonl --out clean.jsonl
+```
